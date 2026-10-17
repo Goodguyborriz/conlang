@@ -2,7 +2,7 @@
 <html lang="cs">
 <head>
   <meta charset="UTF-8">
-  <title>Codex Synergetica – Diachronic & Pragmatic Conlang Engine</title>
+  <title>Codex Synergetica – Semantic Asymmetry & Conlang Engine</title>
   <style>
     :root {
       --bg-dark: #12100e;
@@ -190,6 +190,13 @@
       gap: 12px;
     }
 
+    .manuscript-paragraph.vertical-flow {
+      writing-mode: vertical-rl;
+      text-orientation: upright;
+      max-height: 500px;
+      gap: 12px 18px;
+    }
+
     .specimen-box {
       border: 1px solid rgba(92, 67, 48, 0.45);
       padding: 8px;
@@ -315,7 +322,7 @@
     <div class="card">
       <h2>Zdrojový korpus <span class="badge" id="wikiQID">Q—</span></h2>
       <div class="row"><span>Titul článku:</span> <span class="mono" id="wikiTitle">—</span></div>
-      <div class="row"><span>Zvukový zákon (Shift):</span> <span class="mono" id="wikiSoundLaw">—</span></div>
+      <div class="row"><span>Sémantická asymetrie:</span> <span class="mono" id="wikiAsymmetry">—</span></div>
       <div class="source-extract" id="wikiExtract">—</div>
     </div>
 
@@ -471,7 +478,7 @@ function simulateVowelDispersion(numVowels, hasCentralSchwa, rng) {
 
 /**
  * ============================================================================
- * ULTIMÁTNÍ SYNERGETICKÝ ENGINE (DIACHRONNÍ ZVUKOVÉ ZÁKONY & PRAGMATIKA)
+ * ULTIMÁTNÍ SYNERGETICKÝ ENGINE (SÉMANTICKÁ ASYMETRIE & PERIPHRASE)
  * ============================================================================
  */
 class SynergeticConlangEngine {
@@ -487,16 +494,18 @@ class SynergeticConlangEngine {
     this.rng = createRNG(this.domainSeed ^ this.articleSeed);
     this.langRng = createRNG(this.domainSeed);
 
-    // 1. DIACHRONNÍ ZVUKOVÉ ZÁKONY (Pravidelné fonetické posuny)
-    const soundLaws = ['spirantizace', 'palatalizace', 'asibilace', 'lenice', 'vokalická_mutace'];
-    this.activeSoundLaw = soundLaws[this.domainSeed % soundLaws.length];
+    this.activeSoundLaw = ['spirantizace', 'palatalizace', 'asibilace', 'lenice', 'vokalická_mutace'][this.domainSeed % 5];
 
     const scriptTypes = ['alfabet', 'abugida', 'syllabary', 'logograms'];
     const archetypes = ['capitalis', 'uncialis', 'cursiva', 'humanistica', 'runica', 'byzantina'];
+    const directions = ['ltr', 'vertical'];
+    const punctTypes = ['medieval_dots', 'crosses', 'virgules', 'none'];
 
     this.scriptSystem = {
       type: scriptTypes[this.domainSeed % scriptTypes.length],
       archetype: archetypes[(this.domainSeed >>> 2) % archetypes.length],
+      direction: directions[this.domainSeed % directions.length],
+      punctuation: punctTypes[(this.domainSeed >>> 3) % punctTypes.length],
       scribeVelocity: 0.4 + ((this.domainSeed % 5) * 0.15),
       inkBleed: 0.2 + ((this.domainSeed % 4) * 0.1),
       pressureMod: 0.5 + ((this.domainSeed % 6) * 0.1),
@@ -569,20 +578,13 @@ class SynergeticConlangEngine {
     this.consonants.push({ c: 'r', type: 'liquid', sonority: 5 });
   }
 
-  // Aplikace diachronního zvukového zákona na kořen slova
   applySoundLaw(surfaceStr) {
     const law = this.activeSoundLaw;
-    if (law === 'spirantizace') {
-      return surfaceStr.replace(/p/g, 'f').replace(/t/g, 's').replace(/k/g, 'x');
-    } else if (law === 'palatalizace') {
-      return surfaceStr.replace(/k/g, 'č').replace(/g/g, 'ž').replace(/t/g, 'c');
-    } else if (law === 'asibilace') {
-      return surfaceStr.replace(/t/g, 'ts').replace(/d/g, 'dz');
-    } else if (law === 'lenice') {
-      return surfaceStr.replace(/p/g, 'b').replace(/t/g, 'd').replace(/k/g, 'g');
-    } else { // vokalická mutace
-      return surfaceStr.replace(/a/g, 'e').replace(/o/g, 'i');
-    }
+    if (law === 'spirantizace') return surfaceStr.replace(/p/g, 'f').replace(/t/g, 's').replace(/k/g, 'x');
+    if (law === 'palatalizace') return surfaceStr.replace(/k/g, 'č').replace(/g/g, 'ž').replace(/t/g, 'c');
+    if (law === 'asibilace') return surfaceStr.replace(/t/g, 'ts').replace(/d/g, 'dz');
+    if (law === 'lenice') return surfaceStr.replace(/p/g, 'b').replace(/t/g, 'd').replace(/k/g, 'g');
+    return surfaceStr.replace(/a/g, 'e').replace(/o/g, 'i');
   }
 
   makeMALSyllable(targetPhonemes) {
@@ -607,7 +609,7 @@ class SynergeticConlangEngine {
       syllables.push(this.makeMALSyllable(targetAvg + posMod + jitter));
     }
     const raw = syllables.join('');
-    const shifted = this.applySoundLaw(raw); // Aplikace diachronního zákona
+    const shifted = this.applySoundLaw(raw);
     return { surface: shifted, syllables, phonemeCount: shifted.length };
   }
 
@@ -703,13 +705,25 @@ class SynergeticConlangEngine {
     expandedSentences.slice(0, 12).forEach((sentStr, sIdx) => {
       const srcWords = sentStr.toLowerCase().match(/[a-z\u00C0-\u017F]+/g) || ["radix", "crescit"];
       if (srcWords.length === 0) return;
+      
+      // SÉMANTICKÁ ASYMETRIE (PERIPHRASE): Náhodné rozštěpení některých slov na dvojslovné opisy
+      const processedWords = [];
+      srcWords.forEach(w => {
+        if (!stopWords.has(w) && this.rng() < 0.22) {
+          // Slovo se rozpadne na dva sémantické uzly (např. podstatné jméno + atribut)
+          processedWords.push(w);
+          processedWords.push(this.pick(srcWords));
+        } else {
+          processedWords.push(w);
+        }
+      });
+
       const clauses = [];
-      for (let i = 0; i < srcWords.length; i += 7) clauses.push(srcWords.slice(i, i + 7));
+      for (let i = 0; i < processedWords.length; i += 7) clauses.push(processedWords.slice(i, i + 7));
 
       clauses.forEach((clauseWords, cIdx) => {
         let translatedClause = this.transformClauseWithDDM(clauseWords, sourceToLexNode, stopWords, allDependencyDistances);
         
-        // 2. PRAGMATICKÉ DISKURZNÍ MARKERY: Vložení uctivé / rétorické částice na začátek klauze
         if (cIdx === 0 && translatedClause.length > 0) {
           const discourseMarker = {
             surface: this.vowels[0].sym + 'm',
@@ -754,6 +768,7 @@ class SynergeticConlangEngine {
     const objGroup  = rawRoles.filter(r => r.role === 'P' || r.role === 'LOC');
     const verbGroup = rawRoles.filter(r => r.role === 'VERB' || r.role === 'PART');
 
+    // SÉMANTICKÁ ASYMETRIE (SOUVĚTNÁ SLOUČENINA): Občasné slepení vedlejších frází do polysyntetických složenin
     const ordered = this.headFinal ? [...subjGroup, ...objGroup, ...verbGroup] : [...subjGroup, ...verbGroup, ...objGroup];
     let headVerbIdx = ordered.findIndex(item => item.role === 'VERB');
     if (headVerbIdx === -1) headVerbIdx = ordered.length - 1;
@@ -821,19 +836,12 @@ class SynergeticConlangEngine {
       const arch = this.scriptSystem.archetype;
       const v = this.scriptSystem.scribeVelocity;
 
-      if (arch === 'capitalis') {
-        base = `M 6 4 L 6 28 M 6 6 L 26 6 M 16 6 L 16 26 `;
-      } else if (arch === 'uncialis') {
-        base = `M 8 8 C 2 2, 26 2, 24 16 Q 16 26, 8 20 `;
-      } else if (arch === 'cursiva') {
-        base = `M ${6 + v*4} 24 C 2 10, ${22 + v*6} 4, 18 18 C 14 30, 28 22, 24 12 `;
-      } else if (arch === 'humanistica') {
-        base = `M 8 6 L 8 26 M 8 14 Q 18 8, 24 14 T 8 26 `;
-      } else if (arch === 'runica') {
-        base = `M 16 4 L 16 28 M 8 10 L 16 16 L 24 10 M 12 18 L 22 26 `;
-      } else {
-        base = `M 6 16 C 6 2, 26 2, 26 16 C 26 30, 6 30, 16 16 `;
-      }
+      if (arch === 'capitalis') base = `M 6 4 L 6 28 M 6 6 L 26 6 M 16 6 L 16 26 `;
+      else if (arch === 'uncialis') base = `M 8 8 C 2 2, 26 2, 24 16 Q 16 26, 8 20 `;
+      else if (arch === 'cursiva') base = `M ${6 + v*4} 24 C 2 10, ${22 + v*6} 4, 18 18 C 14 30, 28 22, 24 12 `;
+      else if (arch === 'humanistica') base = `M 8 6 L 8 26 M 8 14 Q 18 8, 24 14 T 8 26 `;
+      else if (arch === 'runica') base = `M 16 4 L 16 28 M 8 10 L 16 16 L 24 10 M 12 18 L 22 26 `;
+      else base = `M 6 16 C 6 2, 26 2, 26 16 C 26 30, 6 30, 16 16 `;
 
       const cpX = p1[0] + (v > 0.7 ? 4 : -2);
       this.glyphMap[item.c] = base + `Q ${cpX} ${p1[1]}, ${p2[0]} ${p2[1]} T ${p3[0]} ${p3[1]}`;
@@ -938,6 +946,20 @@ class SynergeticConlangEngine {
     return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
       <defs><filter id="inkBlur"><feGaussianBlur stdDeviation="${bleed}"/></filter></defs>
       ${paths}
+    </svg>`;
+  }
+
+  renderPunctuationSVG(scale = 0.85) {
+    const pType = this.scriptSystem.punctuation;
+    if (pType === 'none') return '';
+    const ink = '#94291c';
+    let d = '';
+    if (pType === 'medieval_dots') d = 'M 4 20 A 1.5 1.5 0 1 1 3.9 20 M 4 12 A 1.5 1.5 0 1 1 3.9 12';
+    else if (pType === 'crosses') d = 'M 2 12 L 10 12 M 6 8 L 6 16';
+    else if (pType === 'virgules') d = 'M 3 6 L 7 24';
+
+    return `<svg width="12" height="35" viewBox="0 0 12 35" xmlns="http://www.w3.org/2000/svg">
+      <path d="${d}" fill="none" stroke="${ink}" stroke-width="1.6" stroke-linecap="round"/>
     </svg>`;
   }
 }
@@ -1049,14 +1071,14 @@ function buildCodexFromWiki(wikiData) {
 
   document.getElementById('wikiQID').textContent = wikiData.wikibase_item;
   document.getElementById('wikiTitle').textContent = wikiData.title;
-  document.getElementById('wikiSoundLaw').textContent = activeEngine.activeSoundLaw.toUpperCase();
+  document.getElementById('wikiAsymmetry').textContent = 'Periphrase & Kompozice';
   document.getElementById('wikiExtract').textContent = wikiData.extract;
 
   document.getElementById('gramBranching').textContent = activeEngine.headFinal ? 'θ = 0 (SOV)' : 'θ = 1 (SVO)';
   document.getElementById('gramAlignment').textContent = activeEngine.alignment;
   document.getElementById('gramHarmony').textContent = activeEngine.hasVowelHarmony ? 'Aktivní' : 'Neutralizovaná';
   document.getElementById('gramDiachrony').textContent = `t=${activeEngine.diachrony.t}, p=${activeEngine.diachrony.prob}`;
-  document.getElementById('fontArchetypeLabel').textContent = `${activeEngine.scriptSystem.type.toUpperCase()} (${activeEngine.scriptSystem.archetype})`;
+  document.getElementById('fontArchetypeLabel').textContent = `${activeEngine.scriptSystem.type.toUpperCase()} (${activeEngine.scriptSystem.direction})`;
 
   const caseHtml = Object.values(activeEngine.nominalCases).map(c => `<div><span class="badge">${c.label}</span> <span class="mono">-${c.suffix || '∅'}</span></div>`).join('');
   document.getElementById('caseParadigmList').innerHTML = caseHtml;
@@ -1074,7 +1096,7 @@ function buildCodexFromWiki(wikiData) {
   const folioNum = (activeEngine.articleSeed % 116) + 1;
   const side = (activeEngine.articleSeed % 2 === 0) ? 'r' : 'v';
   document.getElementById('folioNumber').textContent = `Folio ${folioNum}${side}`;
-  document.getElementById('folioSubMeta').textContent = `${wikiData.wikibase_item} • Zákon: ${activeEngine.activeSoundLaw}`;
+  document.getElementById('folioSubMeta').textContent = `${wikiData.wikibase_item} • Asymetrie Sémantiky`;
 
   const titleNode = pageTokens.find(t => t.rank > 8) || pageTokens[0];
   const secondNode = pageTokens[Math.min(1, pageTokens.length - 1)];
@@ -1093,13 +1115,24 @@ function buildCodexFromWiki(wikiData) {
 
 function renderParagraphDOM(tokens, isRubric) {
   const div = document.createElement('div');
-  div.className = 'manuscript-paragraph' + (isRubric ? ' rubric-para' : '');
+  let pClass = 'manuscript-paragraph' + (isRubric ? ' rubric-para' : '');
+  if (activeEngine.scriptSystem.direction === 'vertical') pClass += ' vertical-flow';
+  div.className = pClass;
+
   tokens.forEach((tok, idx) => {
     const span = document.createElement('span');
     span.className = 'v-word';
     span.dataset.canonical = tok.canonicalRoot;
     const isInitial = (idx === 0 && isRubric);
-    span.innerHTML = `${activeEngine.renderWordSVG(tok.surface, isInitial, isInitial ? 1.1 : 0.85)}<span class="v-gloss">${tok.root}${tok.suffix !== '∅' ? '-' + tok.suffix : ''}</span>`;
+    
+    let htmlContent = `${activeEngine.renderWordSVG(tok.surface, isInitial, isInitial ? 1.1 : 0.85)}`;
+    if (idx % 4 === 3 || idx === tokens.length - 1) {
+      htmlContent += activeEngine.renderPunctuationSVG();
+    }
+
+    htmlContent += `<span class="v-gloss">${tok.root}${tok.suffix !== '∅' ? '-' + tok.suffix : ''}</span>`;
+    span.innerHTML = htmlContent;
+
     span.addEventListener('mouseenter', () => inspectToken(tok));
     span.addEventListener('mouseleave', () => document.querySelectorAll('.v-word').forEach(el => el.classList.remove('highlight-root')));
     div.appendChild(span);
@@ -1214,6 +1247,7 @@ document.getElementById('btnFetchCustom').addEventListener('click', async () => 
   buildCodexFromWiki(wikiData);
 });
 
+document.getElementById('btnToggleGloss', () => document.body.classList.toggle('show-gloss'));
 document.getElementById('btnToggleGloss').addEventListener('click', () => document.body.classList.toggle('show-gloss'));
 
 window.addEventListener('DOMContentLoaded', () => document.getElementById('btnRandomWiki').click());

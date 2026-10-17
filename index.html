@@ -2,7 +2,7 @@
 <html lang="cs">
 <head>
   <meta charset="UTF-8">
-  <title>Codex Synergetica – Forenzní Conlang & Paleografický Engine</title>
+  <title>Codex Synergetica – Diachronic & Pragmatic Conlang Engine</title>
   <style>
     :root {
       --bg-dark: #12100e;
@@ -315,7 +315,7 @@
     <div class="card">
       <h2>Zdrojový korpus <span class="badge" id="wikiQID">Q—</span></h2>
       <div class="row"><span>Titul článku:</span> <span class="mono" id="wikiTitle">—</span></div>
-      <div class="row"><span>Doména (Styl písma):</span> <span class="mono" id="wikiDesc">—</span></div>
+      <div class="row"><span>Zvukový zákon (Shift):</span> <span class="mono" id="wikiSoundLaw">—</span></div>
       <div class="source-extract" id="wikiExtract">—</div>
     </div>
 
@@ -329,8 +329,8 @@
     </div>
 
     <div class="card">
-      <h2>Unikátní Abeceda & Paleografie</h2>
-      <div class="row"><span>Styl / Archetyp:</span> <span class="mono" id="fontArchetypeLabel">—</span></div>
+      <h2>Inventář písma</h2>
+      <div class="row"><span>Typ / Archetyp:</span> <span class="mono" id="fontArchetypeLabel">—</span></div>
       <div class="alphabet-grid" id="alphabetGrid"></div>
     </div>
   </aside>
@@ -469,6 +469,11 @@ function simulateVowelDispersion(numVowels, hasCentralSchwa, rng) {
   return vowels;
 }
 
+/**
+ * ============================================================================
+ * ULTIMÁTNÍ SYNERGETICKÝ ENGINE (DIACHRONNÍ ZVUKOVÉ ZÁKONY & PRAGMATIKA)
+ * ============================================================================
+ */
 class SynergeticConlangEngine {
   constructor(wikiData) {
     this.wikiData = wikiData;
@@ -482,14 +487,21 @@ class SynergeticConlangEngine {
     this.rng = createRNG(this.domainSeed ^ this.articleSeed);
     this.langRng = createRNG(this.domainSeed);
 
-    // UNIKÁTNÍ PALEOGRAFICKÁ DNA PRO KAŽDÝ JAZYK
-    const archetypes = ['arcades', 'comb', 'loops', 'diagonal', 'nodes', 'runic'];
-    this.fontStyle = {
-      archetype: archetypes[this.domainSeed % archetypes.length],
-      shear: (this.domainSeed % 7) * 0.04 - 0.12,          // Náklon glyfů
-      aspectX: 0.82 + ((this.domainSeed % 5) * 0.08),       // Šířka glyfu
-      penAngle: 15 + (this.domainSeed % 60),              // Úhel seříznutého brku
-      tension: 0.5 + ((this.domainSeed % 4) * 0.25)       // Zakřivení Bézierových křivek
+    // 1. DIACHRONNÍ ZVUKOVÉ ZÁKONY (Pravidelné fonetické posuny)
+    const soundLaws = ['spirantizace', 'palatalizace', 'asibilace', 'lenice', 'vokalická_mutace'];
+    this.activeSoundLaw = soundLaws[this.domainSeed % soundLaws.length];
+
+    const scriptTypes = ['alfabet', 'abugida', 'syllabary', 'logograms'];
+    const archetypes = ['capitalis', 'uncialis', 'cursiva', 'humanistica', 'runica', 'byzantina'];
+
+    this.scriptSystem = {
+      type: scriptTypes[this.domainSeed % scriptTypes.length],
+      archetype: archetypes[(this.domainSeed >>> 2) % archetypes.length],
+      scribeVelocity: 0.4 + ((this.domainSeed % 5) * 0.15),
+      inkBleed: 0.2 + ((this.domainSeed % 4) * 0.1),
+      pressureMod: 0.5 + ((this.domainSeed % 6) * 0.1),
+      shear: ((this.domainSeed % 7) * 0.03) - 0.09,
+      aspectX: 0.82 + ((this.domainSeed % 5) * 0.07)
     };
 
     const avgLen = words.reduce((s, w) => s + w.length, 0) / Math.max(1, words.length);
@@ -557,6 +569,22 @@ class SynergeticConlangEngine {
     this.consonants.push({ c: 'r', type: 'liquid', sonority: 5 });
   }
 
+  // Aplikace diachronního zvukového zákona na kořen slova
+  applySoundLaw(surfaceStr) {
+    const law = this.activeSoundLaw;
+    if (law === 'spirantizace') {
+      return surfaceStr.replace(/p/g, 'f').replace(/t/g, 's').replace(/k/g, 'x');
+    } else if (law === 'palatalizace') {
+      return surfaceStr.replace(/k/g, 'č').replace(/g/g, 'ž').replace(/t/g, 'c');
+    } else if (law === 'asibilace') {
+      return surfaceStr.replace(/t/g, 'ts').replace(/d/g, 'dz');
+    } else if (law === 'lenice') {
+      return surfaceStr.replace(/p/g, 'b').replace(/t/g, 'd').replace(/k/g, 'g');
+    } else { // vokalická mutace
+      return surfaceStr.replace(/a/g, 'e').replace(/o/g, 'i');
+    }
+  }
+
   makeMALSyllable(targetPhonemes) {
     const len = Math.max(1, Math.min(5, Math.round(targetPhonemes)));
     const v = this.pick(this.vowels).sym;
@@ -578,7 +606,9 @@ class SynergeticConlangEngine {
       const jitter = (this.rng() - 0.5) * 0.4;
       syllables.push(this.makeMALSyllable(targetAvg + posMod + jitter));
     }
-    return { surface: syllables.join(''), syllables, phonemeCount: syllables.join('').length };
+    const raw = syllables.join('');
+    const shifted = this.applySoundLaw(raw); // Aplikace diachronního zákona
+    return { surface: shifted, syllables, phonemeCount: shifted.length };
   }
 
   buildMorphology() {
@@ -635,6 +665,7 @@ class SynergeticConlangEngine {
         if (!meanings.includes(coreMeanings[idx])) meanings.push(coreMeanings[idx]);
       }
       const hasRelicForm = (r <= 18 && this.rng() < this.diachrony.prob);
+      
       this.lexicon.push({
         rank: r,
         root: malForm.surface,
@@ -675,8 +706,28 @@ class SynergeticConlangEngine {
       const clauses = [];
       for (let i = 0; i < srcWords.length; i += 7) clauses.push(srcWords.slice(i, i + 7));
 
-      clauses.forEach(clauseWords => {
-        const translatedClause = this.transformClauseWithDDM(clauseWords, sourceToLexNode, stopWords, allDependencyDistances);
+      clauses.forEach((clauseWords, cIdx) => {
+        let translatedClause = this.transformClauseWithDDM(clauseWords, sourceToLexNode, stopWords, allDependencyDistances);
+        
+        // 2. PRAGMATICKÉ DISKURZNÍ MARKERY: Vložení uctivé / rétorické částice na začátek klauze
+        if (cIdx === 0 && translatedClause.length > 0) {
+          const discourseMarker = {
+            surface: this.vowels[0].sym + 'm',
+            root: 'discourse',
+            canonicalRoot: 'discourse',
+            suffix: '∅',
+            morphTag: 'DISCOURSE (Vskutku)',
+            meanings: ['vskutku / věru'],
+            polysemy: 1,
+            sourceWord: 'marker',
+            isRelic: false,
+            syllableCount: 1,
+            phonemeCount: 2,
+            rank: 1
+          };
+          translatedClause.unshift(discourseMarker);
+        }
+
         paragraphs[sIdx < 3 ? 0 : (sIdx < 6 ? 1 : 2)].push(...translatedClause);
       });
     });
@@ -753,7 +804,6 @@ class SynergeticConlangEngine {
     });
   }
 
-  // DINAMICKÝ VIZUÁLNÍ GENERÁTOR PÍSMA PODLE PALEOGRAFICKÉ DNA
   buildTypography() {
     const pts = [
       [6, 6],   [16, 6],  [26, 6],
@@ -768,56 +818,106 @@ class SynergeticConlangEngine {
       const p3 = this.pick(pts, this.langRng);
 
       let base = '';
-      if (this.fontStyle.archetype === 'arcades') {
-        base = `M 6 14 C 6 2, 26 2, 26 14 Q 16 22, 6 14 `;
-      } else if (this.fontStyle.archetype === 'comb') {
-        base = `M 8 4 L 8 28 M 8 10 L 22 6 M 8 18 L 22 14 `;
-      } else if (this.fontStyle.archetype === 'loops') {
-        base = `M 10 26 C 2 16, 22 6, 16 20 C 12 28, 26 28, 26 16 `;
-      } else if (this.fontStyle.archetype === 'diagonal') {
-        base = `M 6 6 L 26 26 M 26 6 L 6 26 `;
-      } else if (this.fontStyle.archetype === 'nodes') {
-        base = `M 6 16 Q 16 6, 26 16 T 16 26 Z M 16 6 L 16 26 `;
-      } else { // runic
-        base = `M 16 4 L 16 28 M 8 10 L 16 16 L 24 10 `;
+      const arch = this.scriptSystem.archetype;
+      const v = this.scriptSystem.scribeVelocity;
+
+      if (arch === 'capitalis') {
+        base = `M 6 4 L 6 28 M 6 6 L 26 6 M 16 6 L 16 26 `;
+      } else if (arch === 'uncialis') {
+        base = `M 8 8 C 2 2, 26 2, 24 16 Q 16 26, 8 20 `;
+      } else if (arch === 'cursiva') {
+        base = `M ${6 + v*4} 24 C 2 10, ${22 + v*6} 4, 18 18 C 14 30, 28 22, 24 12 `;
+      } else if (arch === 'humanistica') {
+        base = `M 8 6 L 8 26 M 8 14 Q 18 8, 24 14 T 8 26 `;
+      } else if (arch === 'runica') {
+        base = `M 16 4 L 16 28 M 8 10 L 16 16 L 24 10 M 12 18 L 22 26 `;
+      } else {
+        base = `M 6 16 C 6 2, 26 2, 26 16 C 26 30, 6 30, 16 16 `;
       }
 
-      this.glyphMap[item.c] = base + `Q ${p1[0]} ${p1[1]}, ${p2[0]} ${p2[1]} T ${p3[0]} ${p3[1]}`;
+      const cpX = p1[0] + (v > 0.7 ? 4 : -2);
+      this.glyphMap[item.c] = base + `Q ${cpX} ${p1[1]}, ${p2[0]} ${p2[1]} T ${p3[0]} ${p3[1]}`;
     });
   }
 
-  renderWordSVG(surfaceWord, isRubric = false, scale = 0.9) {
+  renderWordSVG(surfaceWord, isRubric = false, scale = 0.88) {
+    const type = this.scriptSystem.type;
+    const ink = isRubric ? '#94291c' : '#261910';
+    const shear = this.scriptSystem.shear;
+    const bleed = this.scriptSystem.inkBleed;
+
+    let paths = '';
+
+    if (type === 'logogramy') {
+      const seedVal = hashString(surfaceWord);
+      const rGen = createRNG(seedVal);
+      const cx = 20, cy = 18, r = 14;
+      paths += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${ink}" stroke-width="1.5" stroke-dasharray="3,1"/>`;
+      
+      let pCmd = `M ${cx + (rGen()-0.5)*10} ${cy + (rGen()-0.5)*10} `;
+      for (let k = 0; k < 3; k++) {
+        pCmd += `Q ${cx + (rGen()-0.5)*20} ${cy + (rGen()-0.5)*20}, ${cx + (rGen()-0.5)*14} ${cy + (rGen()-0.5)*14} `;
+      }
+      paths += `<path d="${pCmd}" fill="none" stroke="${ink}" stroke-width="2.2" stroke-linecap="round" filter="url(#inkBlur)"/>`;
+      
+      const width = 40 * scale;
+      const height = 35 * scale;
+      return `<svg width="${width}" height="${height}" viewBox="0 0 40 35" xmlns="http://www.w3.org/2000/svg">
+        <defs><filter id="inkBlur"><feGaussianBlur stdDeviation="${bleed}"/></filter></defs>
+        <g transform="scale(${scale})">${paths}</g>
+      </svg>`;
+    }
+
+    if (type === 'syllabary') {
+      const syllables = surfaceWord.match(/[aeiouyáéíóúůýě][čšžňŋpbtďkgmnsšlzvřř]?|[pbtďkgmnsšlzvřřčšžňŋ][aeiouyáéíóúůýě][čšžňŋpbtďkgmnsšlzvřř]?/g) || [surfaceWord];
+      const stepX = 28 * scale;
+      const width = Math.max(26, syllables.length * stepX + 6);
+      const height = 35 * scale;
+
+      syllables.forEach((syl, idx) => {
+        const tx = idx * stepX + 2;
+        const sylHash = hashString(syl);
+        const sr = createRNG(sylHash);
+        const d = `M ${6+sr()*4} ${8+sr()*4} C ${4+sr()*12} ${2+sr()*10}, ${18+sr()*8} ${12+sr()*10}, ${14+sr()*10} ${24+sr()*6} Q ${6+sr()*10} ${30+sr()*4}, ${24+sr()*4} ${14+sr()*10}`;
+        
+        paths += `<g transform="translate(${tx}, 0) scale(${scale})">`;
+        paths += `<path d="${d}" fill="none" stroke="${ink}" stroke-width="2.2" stroke-linecap="round" filter="url(#inkBlur)"/>`;
+        paths += `</g>`;
+      });
+
+      return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+        <defs><filter id="inkBlur"><feGaussianBlur stdDeviation="${bleed}"/></filter></defs>
+        ${paths}
+      </svg>`;
+    }
+
     const vowelSyms = this.vowels.map(v => v.sym);
     const units = [];
-
     for (let ch of surfaceWord) {
       if (vowelSyms.includes(ch)) {
-        if (units.length > 0 && !units[units.length - 1].v) units[units.length - 1].v = ch;
-        else units.push({ c: null, v: ch });
+        if (type === 'abugida' && units.length > 0 && !units[units.length - 1].v) {
+          units[units.length - 1].v = ch;
+        } else {
+          units.push({ c: null, v: ch });
+        }
       } else {
         units.push({ c: ch, v: null });
       }
     }
 
-    const stepX = (24 * this.fontStyle.aspectX) * scale;
+    const stepX = (24 * this.scriptSystem.aspectX) * scale;
     const width = Math.max(26, units.length * stepX + 6);
     const height = 35 * scale;
-    const ink = isRubric ? '#94291c' : '#261910';
-    const shear = this.fontStyle.shear;
 
-    let paths = '';
     units.forEach((u, idx) => {
       const tx = idx * stepX + 2;
-      // Aplikujeme unikátní náklon (shear) a šířku glyfu pro tento jazyk
-      paths += `<g transform="translate(${tx}, 0) skewX(${shear * 35}) scale(${scale})">`;
+      paths += `<g transform="translate(${tx}, 0) skewX(${shear * 40}) scale(${scale})">`;
 
       if (u.c && this.glyphMap[u.c]) {
         const d = this.glyphMap[u.c];
-        // Kaligrafická stopa seříznutého pera pod úhlem daným Paleografickou DNA
-        paths += `<path d="${d}" fill="none" stroke="${ink}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>`;
-        paths += `<path d="${d}" transform="translate(1.0, 0.6)" fill="none" stroke="${ink}" stroke-width="0.9" opacity="0.65"/>`;
+        paths += `<path d="${d}" fill="none" stroke="${ink}" stroke-width="${2.1 * this.scriptSystem.pressureMod}" stroke-linecap="round" stroke-linejoin="round" filter="url(#inkBlur)"/>`;
       } else {
-        paths += `<path d="M 13 10 Q 18 18, 13 26" fill="none" stroke="${ink}" stroke-width="2.0" stroke-linecap="round"/>`;
+        paths += `<path d="M 13 10 Q 18 18, 13 26" fill="none" stroke="${ink}" stroke-width="1.9" stroke-linecap="round"/>`;
       }
 
       if (u.v) {
@@ -830,18 +930,21 @@ class SynergeticConlangEngine {
           'M 8 32 Q 14 27, 21 32',
           'M 10 2 L 16 6 M 20 2 L 14 6'
         ];
-        paths += `<path d="${diacritics[vIdx % diacritics.length]}" fill="none" stroke="${ink}" stroke-width="1.6" stroke-linecap="round"/>`;
+        paths += `<path d="${diacritics[vIdx % diacritics.length]}" fill="none" stroke="${ink}" stroke-width="1.5" stroke-linecap="round"/>`;
       }
       paths += `</g>`;
     });
 
-    return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">${paths}</svg>`;
+    return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+      <defs><filter id="inkBlur"><feGaussianBlur stdDeviation="${bleed}"/></filter></defs>
+      ${paths}
+    </svg>`;
   }
 }
 
 /**
  * ============================================================================
- * 6. WIKI API KLIENT & APP CONTROLLER
+ * WIKI API & CONTROLLER
  * ============================================================================
  */
 async function fetchRandomIllustratedWiki(lang = 'en') {
@@ -863,7 +966,7 @@ async function fetchRandomIllustratedWiki(lang = 'en') {
       imageUrl: best.thumbnail?.source || null
     };
   } catch (e) {
-    status.textContent = 'Offline režim – generuji záložní záznam.';
+    status.textContent = 'Offline režim – generuji záznam.';
     return {
       title: 'Mandragora officinarum',
       description: 'Species of flowering plant',
@@ -884,7 +987,7 @@ async function fetchSpecificWikiTopic(topic, lang = 'en') {
     status.textContent = `Načteno: ${data.title}`;
     return { title: data.title, description: data.description || 'Codex Entry', extract: data.extract || data.title, wikibase_item: data.wikibase_item || 'Q101', imageUrl: data.thumbnail?.source || null };
   } catch (e) {
-    status.textContent = `Téma použito jako čistý Seed.`;
+    status.textContent = `Téma použito jako Seed.`;
     return { title: topic, description: 'Manuscript Seed', extract: `${topic} est arcanum naturae elementum. In radice et foliis virtus occulta manet.`, wikibase_item: `SEED-${hashString(topic)%9999}`, imageUrl: null };
   }
 }
@@ -946,14 +1049,14 @@ function buildCodexFromWiki(wikiData) {
 
   document.getElementById('wikiQID').textContent = wikiData.wikibase_item;
   document.getElementById('wikiTitle').textContent = wikiData.title;
-  document.getElementById('wikiDesc').textContent = `Styl: ${activeEngine.fontStyle.archetype.toUpperCase()}`;
+  document.getElementById('wikiSoundLaw').textContent = activeEngine.activeSoundLaw.toUpperCase();
   document.getElementById('wikiExtract').textContent = wikiData.extract;
 
   document.getElementById('gramBranching').textContent = activeEngine.headFinal ? 'θ = 0 (SOV)' : 'θ = 1 (SVO)';
   document.getElementById('gramAlignment').textContent = activeEngine.alignment;
   document.getElementById('gramHarmony').textContent = activeEngine.hasVowelHarmony ? 'Aktivní' : 'Neutralizovaná';
   document.getElementById('gramDiachrony').textContent = `t=${activeEngine.diachrony.t}, p=${activeEngine.diachrony.prob}`;
-  document.getElementById('fontArchetypeLabel').textContent = activeEngine.fontStyle.archetype.toUpperCase();
+  document.getElementById('fontArchetypeLabel').textContent = `${activeEngine.scriptSystem.type.toUpperCase()} (${activeEngine.scriptSystem.archetype})`;
 
   const caseHtml = Object.values(activeEngine.nominalCases).map(c => `<div><span class="badge">${c.label}</span> <span class="mono">-${c.suffix || '∅'}</span></div>`).join('');
   document.getElementById('caseParadigmList').innerHTML = caseHtml;
@@ -964,14 +1067,14 @@ function buildCodexFromWiki(wikiData) {
     const v0 = activeEngine.vowels[0].sym;
     const cell = document.createElement('div');
     cell.className = 'glyph-cell';
-    cell.innerHTML = `${activeEngine.renderWordSVG(c.c + v0, false, 0.75)}<div class="glyph-label">/${c.c}${v0}/</div>`;
+    cell.innerHTML = `${activeEngine.renderWordSVG(c.c + v0, false, 0.72)}<div class="glyph-label">/${c.c}${v0}/</div>`;
     grid.appendChild(cell);
   });
 
   const folioNum = (activeEngine.articleSeed % 116) + 1;
   const side = (activeEngine.articleSeed % 2 === 0) ? 'r' : 'v';
   document.getElementById('folioNumber').textContent = `Folio ${folioNum}${side}`;
-  document.getElementById('folioSubMeta').textContent = `${wikiData.wikibase_item} • ${activeEngine.alignment}`;
+  document.getElementById('folioSubMeta').textContent = `${wikiData.wikibase_item} • Zákon: ${activeEngine.activeSoundLaw}`;
 
   const titleNode = pageTokens.find(t => t.rank > 8) || pageTokens[0];
   const secondNode = pageTokens[Math.min(1, pageTokens.length - 1)];
@@ -996,7 +1099,7 @@ function renderParagraphDOM(tokens, isRubric) {
     span.className = 'v-word';
     span.dataset.canonical = tok.canonicalRoot;
     const isInitial = (idx === 0 && isRubric);
-    span.innerHTML = `${activeEngine.renderWordSVG(tok.surface, isInitial, isInitial ? 1.12 : 0.85)}<span class="v-gloss">${tok.root}${tok.suffix !== '∅' ? '-' + tok.suffix : ''}</span>`;
+    span.innerHTML = `${activeEngine.renderWordSVG(tok.surface, isInitial, isInitial ? 1.1 : 0.85)}<span class="v-gloss">${tok.root}${tok.suffix !== '∅' ? '-' + tok.suffix : ''}</span>`;
     span.addEventListener('mouseenter', () => inspectToken(tok));
     span.addEventListener('mouseleave', () => document.querySelectorAll('.v-word').forEach(el => el.classList.remove('highlight-root')));
     div.appendChild(span);
